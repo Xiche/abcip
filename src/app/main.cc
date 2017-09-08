@@ -57,6 +57,10 @@
 #include "prototool.h"
 #include "stream_reader.h"
 
+#ifdef ENABLE_DAQCAP_WRITER
+#include "daqcap_writer.h"
+#endif
+
 using namespace std;
 
 //-------------------------------------------------------------------------
@@ -80,6 +84,9 @@ static const char* usage =
 "  --help-users to get a list of supported users\n"
 "  --license outputs license information\n"
 "  --pcap <file> writes each packet to the given pcap file\n"
+#ifdef ENABLE_DAQCAP_WRITER
+"  --daqcap <file> writes each packet to the given DAQ capture file\n"
+#endif
 "  --raw changes input to just payload data (no commands)\n"
 "  --snap <len=65535> set pcap snaplen\n"
 "  --stack <protos=" DEFAULT_STACK "> sets default encapsulations\n"
@@ -112,6 +119,9 @@ public:
 
 public:
     const char* pcap;
+#ifdef ENABLE_DAQCAP_WRITER
+    const char* daqcap;
+#endif
     const char* stack;
     const char* user;
     uint16_t snap;
@@ -120,6 +130,9 @@ public:
 
 Conf::Conf (int argc, char* argv[]) {
     pcap = NULL;
+#ifdef ENABLE_DAQCAP_WRITER
+    daqcap = NULL;
+#endif
     snap = 65535;
     trace = raw = false;
     stack = DEFAULT_STACK;
@@ -129,6 +142,11 @@ Conf::Conf (int argc, char* argv[]) {
         if ( !strcasecmp(argv[i], "--pcap") && (i+1 < argc) ) {
             pcap = argv[++i];
         }
+#ifdef ENABLE_DAQCAP_WRITER
+        if ( !strcasecmp(argv[i], "--daqcap") && (i+1 < argc) ) {
+            daqcap = argv[++i];
+        }
+#endif
         else if ( !strcasecmp(argv[i], "--snap") && (i+1 < argc) ) {
             snap = atoi(argv[++i]);
         }
@@ -212,6 +230,12 @@ Conf::Conf (int argc, char* argv[]) {
             exit(-1);
        }
     }
+#ifdef ENABLE_DAQCAP_WRITER
+    if ( pcap && daqcap ) {
+        cerr << "Cannot specify both a PCAP and a DAQ capture file for output" << endl;
+        exit(-1);
+    }
+#endif
 }
 
 //-------------------------------------------------------------------------
@@ -228,8 +252,13 @@ int main (int argc, char* argv[]) {
         (Parser*)new DataParser(reader) :
         (Parser*)new CommandParser(reader, "a,b,c,d");
 
-    Writer* writer = c.pcap ? 
-        new PcapWriter(c.pcap, c.stack, c.snap) : NULL;
+    Writer* writer = NULL;
+    if (c.pcap)
+        writer = new PcapWriter(c.pcap, c.stack, c.snap);
+#ifdef ENABLE_DAQCAP_WRITER
+    else if (c.daqcap)
+        writer = new DaqcapWriter(c.daqcap, c.stack, c.snap);
+#endif
 
     AbcIo abc(parser, writer, c.stack, c.user, c.trace);
 

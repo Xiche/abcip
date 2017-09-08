@@ -73,9 +73,19 @@ fi
 
 AM_CONDITIONAL([BUILD_DAQ], [test "x$enable_daq" != xno])
 
+AC_CHECK_DAQCAP_HEADERS
+AC_CHECK_DAQCAP_LIBS
+
+if test "x$HAVE_DAQCAP_HEADERS" = xyes && test "x$HAVE_DAQCAP_LIBRARIES" = xyes ; then
+    AC_DEFINE([ENABLE_DAQCAP_WRITER], [1], [Define to enable DAQCap support])
+fi
+AM_CONDITIONAL([BUILD_DAQCAP_WRITER], [test "x$HAVE_DAQCAP_HEADERS" = xyes && test "x$HAVE_DAQCAP_LIBRARIES" = xyes])
+
 AM_CPPFLAGS="-Wall -Wextra -Wformat -Wformat-security -pedantic ${LIBDAQ_CPPFLAGS}"
 
 AC_SUBST([AM_CPPFLAGS])
+AC_SUBST([DAQCAP_CPPFLAGS])
+AC_SUBST([DAQCAP_LDFLAGS])
 
 AC_CONFIG_FILES([ \
     Makefile \
@@ -100,9 +110,11 @@ AC_MSG_RESULT([
     compiler++:      ${CXX}
     cppflags:        ${CPPFLAGS}
     am_cppflags:     ${AM_CPPFLAGS}
+    daqcap_cppflags: ${DAQCAP_CPPFLAGS}
     cxxflags:        ${CXXFLAGS}
     am_cxxflags:     ${AM_CXXFLAGS}
     ldflags:         ${LDFLAGS}
     am_ldflags:      ${AM_LDFLAGS}
+    daqcap_ldflags:  ${DAQCAP_LDFLAGS}
     libs:            ${LIBS}
 ])
